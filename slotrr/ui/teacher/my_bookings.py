@@ -1,0 +1,59 @@
+import tkinter as tk
+from tkinter import ttk
+from slotrr.auth import auth
+from slotrr.db import db
+from slotrr.ui.components import Card, CustomButton, ConfirmationDialog, Toast
+from slotrr.ui.theme import theme
+
+class MyBookings(Card):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.create_widgets()
+        self.load_bookings()
+
+    def create_widgets(self):
+        title = tk.Label(self, text="My Bookings", font=theme.get_font(18, True), 
+                        fg=theme.colors['text'], bg=theme.colors['card'])
+        title.pack(pady=20)
+
+        # Bookings table
+        self.tree = ttk.Treeview(self, columns=("Room", "Subject", "Date", "Time", "Students"), show="headings")
+        self.tree.heading("Room", text="Room")
+        self.tree.heading("Subject", text="Subject")
+        self.tree.heading("Date", text="Date")
+        self.tree.heading("Time", text="Time")
+        self.tree.heading("Students", text="Students")
+        self.tree.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
+
+        # Cancel button
+        cancel_btn = CustomButton(self, text="Cancel Booking", command=self.cancel_booking)
+        cancel_btn.pack(pady=(0, 20))
+
+    def load_bookings(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        user = auth.get_current_user()
+        bookings = db.get_user_bookings(user['id'])
+
+        for booking in bookings:
+            students = db.get_students_for_booking(booking['id'])
+            student_names = [s['users']['full_name'] for s in students]
+            self.tree.insert("", tk.END, values=(
+                booking['classrooms']['name'],
+                booking['subject_name'],
+                booking['date'],
+                f"{booking['start_time']} - {booking['end_time']}",
+                ', '.join(student_names)
+            ), tags=(booking['id'],))
+
+    def cancel_booking(self):
+        selected = self.tree.selection()
+        if not selected:
+            Toast.show(self, "Please select a booking to cancel", "warning")
+            return
+        booking_id = self.tree.item(selected[0], 'tags')[0]
+        if ConfirmationDialog.ask(self, "Cancel Booking", "Are you sure you want to cancel this booking?"):
+            db.cancel_booking(booking_id)
+            self.load_bookings()
+            Toast.show(self, "Booking cancelled successfully", "success")

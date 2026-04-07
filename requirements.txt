@@ -1,0 +1,4 @@
+supabase
+bcrypt
+Pillow
+python-dotenv

@@ -1,3 +1,28 @@
+Metadata-Version: 2.4
+Name: slotrr
+Version: 1.0.0
+Summary: A comprehensive classroom booking system with Tkinter GUI
+Author: Your Name
+Author-email: jaahnak <your-email@example.com>
+License: MIT
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Education
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Education
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: supabase
+Requires-Dist: bcrypt
+Requires-Dist: Pillow
+Requires-Dist: python-dotenv
+Dynamic: author
+
 # SLOTRR - Classroom Booking System
 
 A comprehensive classroom booking system built with Python and Tkinter, featuring a beautiful GUI and Supabase backend.
