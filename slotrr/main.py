@@ -17,6 +17,15 @@ from .ui.theme import theme
 from .config import APP_NAME
 import sys
 
+# ── Color palette ────────────────────────────────────────────────
+NAV_BG        = "#151B2B"   # dark navy for navbar
+NAV_BTN_REST  = "#1E2640"   # subtle dark pill (rest)
+NAV_BTN_HOVER = "#263052"   # slightly lighter on hover
+NAV_BTN_ACTIVE = "#2563EB"  # professional blue for active page
+NAV_BTN_FG    = "#8B93A7"   # muted text for rest
+NAV_BTN_FG_A  = "#FFFFFF"   # white text for active
+
+
 class SlotrrApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -25,40 +34,38 @@ class SlotrrApp(tk.Tk):
         self.configure(bg=theme.colors['background'])
         self.resizable(True, True)
 
+        self._active_page = "Dashboard"
+        self._nav_btns = []
+
         # Set icon
         try:
             from PIL import Image, ImageTk
-            icon = Image.new('RGBA', (32, 32), (100, 100, 255, 255))
+            icon = Image.new('RGBA', (32, 32), (37, 99, 235, 255))
             self.iconphoto(True, ImageTk.PhotoImage(icon))
         except ImportError:
             pass
-
-        # Theme toggle button
-        self.theme_btn = tk.Button(self, text="🌙" if theme.is_dark else "☀", command=self.toggle_theme, 
-                                  bg=theme.colors['background'], fg=theme.colors['text'], 
-                                  font=("Arial", 16), relief="flat", borderwidth=0)
-        self.theme_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
 
         # Main container
         self.container = tk.Frame(self, bg=theme.colors['background'])
         self.container.pack(fill=tk.BOTH, expand=True)
 
-        # Navigation bar (horizontal top bar)
-        self.nav_frame = tk.Frame(self.container, bg=theme.colors['card'], height=50)
+        # ── Navigation bar ───────────────────────────────────────
+        self.nav_frame = tk.Frame(self.container, bg=NAV_BG, height=52)
         self.nav_frame.pack(fill=tk.X, side=tk.TOP)
         self.nav_frame.pack_propagate(False)
 
         # Logo
-        logo_label = tk.Label(self.nav_frame, text="SLOTRR", font=theme.get_font(16, True), 
-                             fg=theme.colors['accent'], bg=theme.colors['card'])
-        logo_label.pack(side=tk.LEFT, padx=20)
+        logo_label = tk.Label(self.nav_frame, text="SLOTRR",
+                              font=theme.get_font(17, True),
+                              fg="#38BDF8", bg=NAV_BG)
+        logo_label.pack(side=tk.LEFT, padx=(20, 30))
 
         # Nav buttons container
-        self.nav_buttons = tk.Frame(self.nav_frame, bg=theme.colors['card'])
-        self.nav_buttons.pack(side=tk.LEFT, expand=True)
+        self.nav_buttons = tk.Frame(self.nav_frame, bg=NAV_BG)
+        self.nav_buttons.pack(side=tk.LEFT, fill=tk.Y)
 
-        # User info
-        self.user_frame = tk.Frame(self.nav_frame, bg=theme.colors['card'])
+        # Right side: user info
+        self.user_frame = tk.Frame(self.nav_frame, bg=NAV_BG)
         self.user_frame.pack(side=tk.RIGHT, padx=20)
 
         # Content frame
@@ -68,6 +75,8 @@ class SlotrrApp(tk.Tk):
         # Start with login
         self.show_login()
 
+    # ── Login / navigation ───────────────────────────────────────
+
     def show_login(self):
         self.clear_nav()
         self.clear_content()
@@ -75,50 +84,92 @@ class SlotrrApp(tk.Tk):
         login_screen.pack(fill=tk.BOTH, expand=True)
 
     def on_login_success(self):
+        self._active_page = "Dashboard"
         self.setup_navigation()
         self.show_dashboard()
 
     def setup_navigation(self):
         self.clear_nav()
+        self._nav_btns = []
         user = auth.get_current_user()
 
-        # User info
-        name_label = tk.Label(self.user_frame, text=user['full_name'], font=theme.get_font(12), 
-                             fg=theme.colors['text'], bg=theme.colors['card'])
-        name_label.pack(side=tk.LEFT)
+        # User info label
+        user_lbl = tk.Label(self.user_frame, text=user['full_name'],
+                            font=theme.get_font(11),
+                            fg="#CBD5E1", bg=NAV_BG)
+        user_lbl.pack(side=tk.LEFT)
 
-        logout_btn = tk.Button(self.user_frame, text="🚪", command=self.logout, 
-                              bg=theme.colors['card'], fg=theme.colors['text'], 
-                              font=("Arial", 12), relief="flat", borderwidth=0)
-        logout_btn.pack(side=tk.LEFT, padx=(10, 0))
+        # Logout icon
+        logout_lbl = tk.Label(self.user_frame, text="⏻",
+                              font=("Arial", 14), fg="#64748B", bg=NAV_BG,
+                              cursor="hand2")
+        logout_lbl.pack(side=tk.LEFT, padx=(12, 0))
+        logout_lbl.bind("<Button-1>", lambda e: self.logout())
+        logout_lbl.bind("<Enter>", lambda e: logout_lbl.config(fg="#EF4444"))
+        logout_lbl.bind("<Leave>", lambda e: logout_lbl.config(fg="#64748B"))
 
-        # Navigation buttons
-        nav_items = []
+        # Determine nav items by role
         if auth.is_admin():
             nav_items = [
-                ("Dashboard", self.show_dashboard),
-                ("Rooms", self.show_manage_rooms),
-                ("Users", self.show_manage_users),
-                ("Bookings", self.show_manage_bookings),
+                ("Dashboard",  self.show_dashboard),
+                ("Rooms",      self.show_manage_rooms),
+                ("Users",      self.show_manage_users),
+                ("Bookings",   self.show_manage_bookings),
                 ("Campus Map", self.show_campus_map),
-                ("Reports", self.show_reports)
+                ("Reports",    self.show_reports),
             ]
         elif auth.is_teacher():
             nav_items = [
-                ("Dashboard", self.show_dashboard),
-                ("Book Room", self.show_book_room),
-                ("My Bookings", self.show_my_bookings)
+                ("Dashboard",   self.show_dashboard),
+                ("Book Room",   self.show_book_room),
+                ("My Bookings", self.show_my_bookings),
             ]
+        else:
+            nav_items = []
 
         for text, command in nav_items:
-            btn = tk.Button(self.nav_buttons, text=text, command=command, 
-                           bg=theme.colors['card'], fg=theme.colors['text'], 
-                           font=theme.get_font(10), relief="flat", borderwidth=0)
-            btn.pack(side=tk.LEFT, padx=10)
-            btn.bind("<Enter>", lambda e, b=btn: b.config(bg=theme.colors['primary'], fg=theme.colors['text']))
-            btn.bind("<Leave>", lambda e, b=btn: b.config(bg=theme.colors['card'], fg=theme.colors['text']))
+            is_active = (text == self._active_page)
+            bg = NAV_BTN_ACTIVE if is_active else NAV_BTN_REST
+            fg = NAV_BTN_FG_A if is_active else NAV_BTN_FG
+
+            btn = tk.Label(self.nav_buttons, text=text,
+                           bg=bg, fg=fg,
+                           font=theme.get_font(10, True),
+                           padx=18, pady=7, cursor="hand2")
+            btn.pack(side=tk.LEFT, padx=4, pady=10)
+            btn._nav_text = text
+
+            # Click handler
+            def on_click(e, t=text, cmd=command):
+                self._active_page = t
+                cmd()
+            btn.bind("<Button-1>", on_click)
+
+            # Hover (skip if active)
+            def enter(e, b=btn):
+                if b._nav_text != self._active_page:
+                    b.config(bg=NAV_BTN_HOVER, fg="#CBD5E1")
+            def leave(e, b=btn):
+                if b._nav_text != self._active_page:
+                    b.config(bg=NAV_BTN_REST, fg=NAV_BTN_FG)
+            btn.bind("<Enter>", enter)
+            btn.bind("<Leave>", leave)
+
+            self._nav_btns.append(btn)
+
+    def _refresh_nav_active(self):
+        """Re-paint nav buttons so only the active one is highlighted."""
+        for btn in self._nav_btns:
+            if btn._nav_text == self._active_page:
+                btn.config(bg=NAV_BTN_ACTIVE, fg=NAV_BTN_FG_A)
+            else:
+                btn.config(bg=NAV_BTN_REST, fg=NAV_BTN_FG)
+
+    # ── Page navigation ──────────────────────────────────────────
 
     def show_dashboard(self):
+        self._active_page = "Dashboard"
+        self._refresh_nav_active()
         self.clear_content()
         if auth.is_admin():
             dashboard = AdminDashboard(self.content_frame)
@@ -127,39 +178,48 @@ class SlotrrApp(tk.Tk):
         dashboard.pack(fill=tk.BOTH, expand=True)
 
     def show_manage_rooms(self):
+        self._active_page = "Rooms"
+        self._refresh_nav_active()
         self.clear_content()
-        manage_rooms = ManageRooms(self.content_frame)
-        manage_rooms.pack(fill=tk.BOTH, expand=True)
+        ManageRooms(self.content_frame).pack(fill=tk.BOTH, expand=True)
 
     def show_manage_users(self):
+        self._active_page = "Users"
+        self._refresh_nav_active()
         self.clear_content()
-        manage_users = ManageUsers(self.content_frame)
-        manage_users.pack(fill=tk.BOTH, expand=True)
+        ManageUsers(self.content_frame).pack(fill=tk.BOTH, expand=True)
 
     def show_manage_bookings(self):
+        self._active_page = "Bookings"
+        self._refresh_nav_active()
         self.clear_content()
-        manage_bookings = ManageBookings(self.content_frame)
-        manage_bookings.pack(fill=tk.BOTH, expand=True)
+        ManageBookings(self.content_frame).pack(fill=tk.BOTH, expand=True)
 
     def show_campus_map(self):
+        self._active_page = "Campus Map"
+        self._refresh_nav_active()
         self.clear_content()
-        campus_map = CampusMap(self.content_frame)
-        campus_map.pack(fill=tk.BOTH, expand=True)
+        CampusMap(self.content_frame).pack(fill=tk.BOTH, expand=True)
 
     def show_reports(self):
+        self._active_page = "Reports"
+        self._refresh_nav_active()
         self.clear_content()
-        reports = Reports(self.content_frame)
-        reports.pack(fill=tk.BOTH, expand=True)
+        Reports(self.content_frame).pack(fill=tk.BOTH, expand=True)
 
     def show_book_room(self):
+        self._active_page = "Book Room"
+        self._refresh_nav_active()
         self.clear_content()
-        book_room = BookRoom(self.content_frame)
-        book_room.pack(fill=tk.BOTH, expand=True)
+        BookRoom(self.content_frame).pack(fill=tk.BOTH, expand=True)
 
     def show_my_bookings(self):
+        self._active_page = "My Bookings"
+        self._refresh_nav_active()
         self.clear_content()
-        my_bookings = MyBookings(self.content_frame)
-        my_bookings.pack(fill=tk.BOTH, expand=True)
+        MyBookings(self.content_frame).pack(fill=tk.BOTH, expand=True)
+
+    # ── Misc ─────────────────────────────────────────────────────
 
     def logout(self):
         auth.logout()
@@ -167,8 +227,6 @@ class SlotrrApp(tk.Tk):
 
     def toggle_theme(self):
         theme.toggle_theme()
-        self.theme_btn.config(text="🌙" if theme.is_dark else "☀")
-        # Re-render current screen
         if auth.get_current_user():
             self.setup_navigation()
             self.show_dashboard()
@@ -185,14 +243,10 @@ class SlotrrApp(tk.Tk):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
 
-def run():
-    # Check if admin exists, if not, create setup
-    admins = db.get_users_by_role('admin')
-    if not admins:
-        print("No admin user found. Please create one manually in the database.")
-        # For demo, create a default admin
-        db.create_user("Admin User", "admin@slotrr.com", "admin123", "admin")
 
+def run():
+    print("Starting SLOTRR...")
+    print("Default login: just select a role and click Sign In")
     app = SlotrrApp()
     app.mainloop()
 

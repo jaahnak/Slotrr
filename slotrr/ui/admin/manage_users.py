@@ -80,13 +80,15 @@ class ManageUsers(Card):
             return
         user_id = self.tree.item(selected[0], 'tags')[0]
         # For simplicity, set password to 'password123'
-        db.update_user(user_id, {'password_hash': db.client.table('users').select('password_hash').eq('id', user_id).execute().data[0]['password_hash']})  # Keep same for now
+        import bcrypt
+        new_hash = bcrypt.hashpw("password123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.update_user(user_id, {'password_hash': new_hash})
         Toast.show(self, "Password reset to 'password123'", "success")
 
     def user_dialog(self, title, user_id=None):
         dialog = tk.Toplevel(self)
         dialog.title(title)
-        dialog.geometry("400x400")
+        dialog.geometry("500x550")
         dialog.config(bg=theme.colors['background'])
 
         card = Card(dialog)
@@ -124,7 +126,7 @@ class ManageUsers(Card):
             password_entry.pack(fill=tk.X, pady=(5, 15))
 
         if user_id:
-            user = db.client.table('users').select('*').eq('id', user_id).execute().data[0]
+            user = db.get_user_by_id(user_id)
             name_entry.insert(0, user['full_name'])
             email_entry.insert(0, user['email'])
             role_var.set(user['role'])

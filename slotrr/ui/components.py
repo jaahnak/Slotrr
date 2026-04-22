@@ -38,56 +38,74 @@ class RoundedFrame(tk.Canvas):
                   x1, y1]
         return self.create_polygon(points, **kwargs, smooth=True)
 
-class CustomButton(tk.Button):
+class CustomButton(tk.Label):
     def __init__(self, parent, text="", command=None, primary=False, **kwargs):
-        super().__init__(parent, text=text, command=command, **kwargs)
+        super().__init__(parent, text=text, **kwargs)
         self.primary = primary
+        self._command = command
         self.config(
             font=theme.get_font(10, True),
-            relief="flat",
-            borderwidth=0,
             padx=20,
             pady=10,
             cursor="hand2"
         )
         self.update_style()
+        self.bind("<Button-1>", self._on_click)
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
 
+    def _on_click(self, event=None):
+        if self._command:
+            self._command()
+
     def update_style(self):
         if self.primary:
-            bg = theme.colors['primary']
-            fg = theme.colors['text']
+            bg = "#2563EB"        # professional blue for primary
+            fg = "#FFFFFF"
         else:
-            bg = theme.colors['surface']
-            fg = theme.colors['text']
-        self.config(bg=bg, fg=fg, activebackground=theme.colors['accent'], activeforeground=fg)
+            bg = "#1E40AF"        # deeper blue for secondary
+            fg = "#FFFFFF"
+        self.config(bg=bg, fg=fg)
 
     def on_enter(self, event):
-        self.config(bg=theme.colors['accent'])
+        self.config(bg="#3B82F6")  # brighter blue on hover
 
     def on_leave(self, event):
         self.update_style()
 
 class CustomEntry(ttk.Entry):
     def __init__(self, parent, placeholder="", **kwargs):
+        self._show_char = kwargs.pop('show', '')
         super().__init__(parent, **kwargs)
         self.placeholder = placeholder
         self.placeholder_color = theme.colors['subtext']
         self.default_color = theme.colors['text']
+        self._has_placeholder = False
         self.bind("<FocusIn>", self.on_focus_in)
         self.bind("<FocusOut>", self.on_focus_out)
         self.on_focus_out()
 
-    def on_focus_in(self, event):
-        if self.get() == self.placeholder:
+    def on_focus_in(self, event=None):
+        if self._has_placeholder:
             self.delete(0, tk.END)
+            self._has_placeholder = False
             self.config(foreground=self.default_color)
+            if self._show_char:
+                self.config(show=self._show_char)
 
-    def on_focus_out(self, event):
+    def on_focus_out(self, event=None):
         if not self.get():
+            self.config(show='')
             self.insert(0, self.placeholder)
             self.config(foreground=self.placeholder_color)
+            self._has_placeholder = True
+
+    def get_value(self):
+        """Return the actual value, or empty string if placeholder is showing."""
+        if self._has_placeholder:
+            return ""
+        return self.get()
+
 
 class Card(RoundedFrame):
     def __init__(self, parent, **kwargs):

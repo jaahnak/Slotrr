@@ -140,19 +140,19 @@ class BookRoom(Card):
         db.add_students_to_booking(booking.data[0]['id'], student_ids)
 
         # Send emails
-        room = db.client.table('classrooms').select('name').eq('id', room_id).execute().data[0]
+        room_name = db.get_classroom_name(room_id)
         for student_str in self.selected_students:
             student = self.student_data[student_str]
             email_service.send_lecture_notification(
                 student['email'], student['full_name'], user['full_name'], subject,
-                room['name'], date_str, start_time_str, end_time_str
+                room_name, date_str, start_time_str, end_time_str
             )
 
         # Send to admin
         admins = db.get_users_by_role('admin')
         for admin in admins:
             email_service.send_admin_booking_alert(
-                admin['email'], user['full_name'], subject, room['name'],
+                admin['email'], user['full_name'], subject, room_name,
                 date_str, start_time_str, end_time_str, [self.student_data[s]['full_name'] for s in self.selected_students]
             )
 

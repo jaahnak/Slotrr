@@ -47,10 +47,8 @@ class ManageBookings(Card):
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        query = db.client.table('bookings').select('*, users(full_name), classrooms(name)')
-        if self.date_var.get():
-            query = query.eq('date', self.date_var.get())
-        bookings = query.execute().data
+        date_filter = self.date_var.get() if self.date_var.get() else None
+        bookings = db.get_all_bookings(date_filter)
 
         for booking in bookings:
             students = db.get_students_for_booking(booking['id'])

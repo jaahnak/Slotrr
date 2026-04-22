@@ -42,7 +42,7 @@ class ManageRooms(Card):
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        rooms = db.client.table('classrooms').select('*').execute().data
+        rooms = db.get_all_classrooms_including_inactive()
         for room in rooms:
             self.tree.insert("", tk.END, values=(
                 room['name'],
@@ -77,7 +77,7 @@ class ManageRooms(Card):
     def room_dialog(self, title, room_id=None):
         dialog = tk.Toplevel(self)
         dialog.title(title)
-        dialog.geometry("400x300")
+        dialog.geometry("500x520")
         dialog.config(bg=theme.colors['background'])
 
         card = Card(dialog)
@@ -101,21 +101,25 @@ class ManageRooms(Card):
         # Floor
         tk.Label(card, text="Floor", font=theme.get_font(12), 
                 fg=theme.colors['text'], bg=theme.colors['card']).pack(anchor="w")
-        floor_entry = CustomEntry(card)
+        floor_entry = ttk.Combobox(card, values=["1", "2", "3", "4", "5"], state="readonly")
         floor_entry.pack(fill=tk.X, pady=(5, 15))
+        if not room_id:
+            floor_entry.set("1")  # Default to 1
 
         # Building
         tk.Label(card, text="Building", font=theme.get_font(12), 
                 fg=theme.colors['text'], bg=theme.colors['card']).pack(anchor="w")
-        building_entry = CustomEntry(card)
+        building_entry = ttk.Combobox(card, values=["Main Block", "Science Block", "Arts Block"], state="readonly")
         building_entry.pack(fill=tk.X, pady=(5, 15))
+        if not room_id:
+            building_entry.set("Main Block")
 
         if room_id:
-            room = db.client.table('classrooms').select('*').eq('id', room_id).execute().data[0]
+            room = db.get_classroom_by_id(room_id)
             name_entry.insert(0, room['name'])
             capacity_entry.insert(0, str(room['capacity']))
-            floor_entry.insert(0, str(room['floor']))
-            building_entry.insert(0, room['building'])
+            floor_entry.set(str(room['floor']))
+            building_entry.set(room['building'])
 
         def save():
             name = name_entry.get()

@@ -47,7 +47,7 @@ class Reports(Card):
 
     def draw_bar_chart(self):
         # Get booking counts per room
-        bookings = db.client.table('bookings').select('room_id, classrooms(name)').execute().data
+        bookings = db.get_all_bookings_with_room()
         room_counts = Counter(booking['room_id'] for booking in bookings)
         
         # Get room names
@@ -84,7 +84,7 @@ class Reports(Card):
 
     def draw_teacher_chart(self):
         # Similar to above, but for teachers
-        bookings = db.client.table('bookings').select('teacher_id, users(full_name)').execute().data
+        bookings = db.get_all_bookings_with_teacher()
         teacher_counts = Counter(booking['teacher_id'] for booking in bookings)
         
         teacher_names = {}
@@ -126,14 +126,14 @@ class Reports(Card):
             writer = csv.writer(csvfile)
             if report_type == "most_booked_rooms":
                 writer.writerow(["Room", "Bookings"])
-                bookings = db.client.table('bookings').select('room_id, classrooms(name)').execute().data
+                bookings = db.get_all_bookings_with_room()
                 room_counts = Counter(booking['room_id'] for booking in bookings)
                 room_names = {b['room_id']: b['classrooms']['name'] for b in bookings}
                 for room_id, count in room_counts.items():
                     writer.writerow([room_names.get(room_id, 'Unknown'), count])
             elif report_type == "teacher_activity":
                 writer.writerow(["Teacher", "Bookings"])
-                bookings = db.client.table('bookings').select('teacher_id, users(full_name)').execute().data
+                bookings = db.get_all_bookings_with_teacher()
                 teacher_counts = Counter(booking['teacher_id'] for booking in bookings)
                 teacher_names = {b['teacher_id']: b['users']['full_name'] for b in bookings}
                 for teacher_id, count in teacher_counts.items():
